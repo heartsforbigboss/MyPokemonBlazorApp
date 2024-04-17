@@ -1,0 +1,102 @@
+﻿@rendermode InteractiveServer
+@inject DatabaseContext DbContext
+
+@if (showForm)
+{
+    <div class="card">
+        <div class="card-body bg-light">
+            <h4 class="card-title">
+                Add Trainer
+            </h4>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="name" class="form-label">Name</label>
+                    <InputText class="form-control" placeholder="Name" @bind-Value="model.Name" />
+                </div>
+                <div class="col-md-6">
+                    <label for="companion" class="form-label">Companion</label>
+                    <InputSelect class="form-select" placeholder="Companion" @bind-Value="companionId">
+                        @foreach (var pokemon in pokemons)
+                        {
+                            <option value="@pokemon.Id">@pokemon.Name</option>
+                        }
+                    </InputSelect>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+
+@if (trainers is not null)
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th scope="col">#</th>
+                <th scope="col">Name</th>
+                <th scope="col">Companion</th>
+                <th scope="col">Edit</th>
+                <th scope="col">Delete</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var trainer in trainers)
+            {
+                <tr>
+                    <td>@trainer.Id</td>
+                    <td>@trainer.Name</td>
+                    <td>@trainer.Companion.Name</td>
+                    <td>
+                        <button class="btn btn-success" @onclick="() => Edit(trainer)">Edit</button>
+                    </td>
+                    <td>
+                        <button class="btn btn-danger" @onclick="() => Delete(trainer)">Delete</button>
+                    </td>
+
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <p>Loading...</p>
+}
+
+
+@code {
+    private List<Trainer>? trainers;
+    private EditContext editContext;
+    private Trainer model;
+    private bool showForm;
+    private List<Pokemon> pokemons;
+    private int companionId;
+
+    protected async override Task OnInitializedAsync()
+    {
+        trainers = await DbContext.Trainers.Include(t => t.Companion).ToListAsync();
+        
+    }
+
+    private void Edit(Trainer trainer)
+    {
+        model = trainer;
+        editContext = new EditContext(model);
+        showForm = true;
+    }
+
+    private async Task Delete(Trainer trainers)
+    {
+        DbContext.Trainers.Remove(trainers);
+        await DbContext.SaveChangesAsync();
+        await Refresh();
+    }
+
+    private async Task Refresh()
+    {
+        model = new Trainer();
+        editContext = new EditContext(model);
+        trainers = await DbContext.Trainers.ToListAsync();
+    }
+}
